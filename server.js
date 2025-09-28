@@ -42,24 +42,135 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Функция создания email транспортера  
+// Функция создания email транспортера с множественными попытками
 const createTransporter = () => {
-    return nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false, // true для port 465, false для других портов
-        auth: {
-            user: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com',
-            pass: process.env.EMAIL_PASS || 'zjzj yocn hyzc ukdl'
+    // Попробуем разные конфигурации Gmail SMTP
+    const configs = [
+        // Конфигурация 1: Gmail SMTP с TLS
+        {
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: {
+                user: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com',
+                pass: process.env.EMAIL_PASS || 'zjzj yocn hyzc ukdl'
+            },
+            tls: {
+                rejectUnauthorized: false,
+                ciphers: 'SSLv3'
+            },
+            connectionTimeout: 60000,
+            greetingTimeout: 30000,
+            socketTimeout: 75000
         },
-        tls: {
-            rejectUnauthorized: false
-        },
-        connectionTimeout: 30000, // 30 секунд на подключение
-        greetingTimeout: 20000, // 20 секунд на greeting
-        socketTimeout: 60000 // 60 секунд на socket
-    });
+        // Конфигурация 2: Gmail SMTP с SSL
+        {
+            host: 'smtp.gmail.com', 
+            port: 465,
+            secure: true,
+            auth: {
+                user: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com',
+                pass: process.env.EMAIL_PASS || 'zjzj yocn hyzc ukdl'
+            },
+            tls: {
+                rejectUnauthorized: false
+            },
+            connectionTimeout: 60000,
+            greetingTimeout: 30000,
+            socketTimeout: 75000
+        }
+    ];
+
+    // Возвращаем первую конфигурацию, но сохраняем все для попыток
+    return nodemailer.createTransport(configs[0]);
 };
+
+// Функция отправки email с множественными попытками
+async function sendEmailWithRetry(mailOptions, maxAttempts = 3) {
+    const configs = [
+        // Конфигурация 1: TLS порт 587
+        {
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: {
+                user: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com',
+                pass: process.env.EMAIL_PASS || 'zjzj yocn hyzc ukdl'
+            },
+            tls: {
+                rejectUnauthorized: false,
+                ciphers: 'SSLv3'
+            },
+            connectionTimeout: 45000,
+            greetingTimeout: 30000,
+            socketTimeout: 60000
+        },
+        // Конфигурация 2: SSL порт 465  
+        {
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            auth: {
+                user: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com',
+                pass: process.env.EMAIL_PASS || 'zjzj yocn hyzc ukdl'
+            },
+            tls: {
+                rejectUnauthorized: false
+            },
+            connectionTimeout: 45000,
+            greetingTimeout: 30000,
+            socketTimeout: 60000
+        },
+        // Конфигурация 3: Простая Gmail сервис
+        {
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com',
+                pass: process.env.EMAIL_PASS || 'zjzj yocn hyzc ukdl'
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        }
+    ];
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        for (let configIndex = 0; configIndex < configs.length; configIndex++) {
+            console.log(`📧 Попытка ${attempt + 1}/${maxAttempts}, конфигурация ${configIndex + 1}/${configs.length}`);
+            
+            try {
+                const transporter = nodemailer.createTransport(configs[configIndex]);
+                
+                // Проверяем подключение
+                console.log(`🔗 Проверяем подключение к Gmail...`);
+                await transporter.verify();
+                console.log(`✅ Подключение к Gmail успешно!`);
+                
+                // Отправляем с увеличенным таймаутом
+                const result = await Promise.race([
+                    transporter.sendMail(mailOptions),
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Email timeout после 60 секунд')), 60000)
+                    )
+                ]);
+                
+                console.log(`🎉 EMAIL ОТПРАВЛЕН УСПЕШНО!`);
+                return { success: true, result };
+                
+            } catch (error) {
+                console.log(`❌ Ошибка конфигурации ${configIndex + 1}: ${error.message}`);
+                
+                // Если это последняя попытка последней конфигурации
+                if (attempt === maxAttempts - 1 && configIndex === configs.length - 1) {
+                    throw error;
+                }
+                
+                // Пауза перед следующей попыткой
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
+    }
+}
 
 // Валидация данных формы
 const validateForm = [
@@ -148,9 +259,8 @@ app.post('/api/submit-form', validateForm, async (req, res) => {
         } else {
             // Теперь у нас есть настроенный пароль, попытаемся отправить email
             try {
-                const transporter = createTransporter();
-                    
-                // Устанавливаем таймаут
+                console.log('🚀 Начинаем отправку email с улучшенным алгоритмом...');
+                
                 const mailOptions = {
                     from: {
                         name: 'Свадебное приглашение',
@@ -177,17 +287,12 @@ app.post('/api/submit-form', validateForm, async (req, res) => {
                     `.trim()
                 };
 
-                // Отправка с увеличенным таймаутом 30 секунд
-                await Promise.race([
-                    transporter.sendMail(mailOptions),
-                    new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Email timeout')), 30000)
-                    )
-                ]);
+                // Используем новую функцию с повторными попытками
+                await sendEmailWithRetry(mailOptions, 3);
 
-                // Логирование успешной отправки
-                console.log(`✅ Заявка отправлена по email: ${name} - ${attendance}`);
-                console.log(`📧 Email отправлен на: ${mailOptions.to}`);
+                // Если дошли до этой точки - email отправлен успешно!
+                console.log(`🎉 EMAIL УСПЕШНО ОТПРАВЛЕН на ${mailOptions.to}`);
+                console.log(`📧 Заявка от: ${name} - ${attendance}`);
 
                 // Успешный ответ
                 res.json({
