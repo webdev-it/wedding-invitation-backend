@@ -271,19 +271,23 @@ app.post('/api/submit-form', validateForm, async (req, res) => {
         </html>
         `;
 
-        // Настройка почты
-        const transporter = createTransporter();
-
-        // Параметры письма
-        const mailOptions = {
-            from: {
-                name: 'Свадебное приглашение',
-                address: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com'
-            },
-            to: process.env.RECIPIENT_EMAIL || 'abdumalikabdumalikov72@gmail.com',
-            subject: `💒 Новая заявка на свадьбу от ${name}`,
-            html: htmlContent,
-            text: `
+        // Настройка почты (только если не в тестовом режиме)
+        let transporter = null;
+        let mailOptions = null;
+        
+        if (process.env.NODE_ENV !== 'test' && req.headers['x-test-mode'] !== 'true') {
+            transporter = createTransporter();
+            
+            // Параметры письма
+            mailOptions = {
+                from: {
+                    name: 'Свадебное приглашение',
+                    address: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com'
+                },
+                to: process.env.RECIPIENT_EMAIL || 'abdumalikabdumalikov72@gmail.com',
+                subject: `💒 Новая заявка на свадьбу от ${name}`,
+                html: htmlContent,
+                text: `
 Новая заявка на свадьбу
 
 Имя: ${name}
@@ -296,8 +300,9 @@ app.post('/api/submit-form', validateForm, async (req, res) => {
 Свадьба Икромхуджи и Сарвиноз
 6 октября 2025 в 18:00
 Ресторан «Базморо»
-            `.trim()
-        };
+                `.trim()
+            };
+        }
 
         // Отправка письма (только если не в тестовом режиме)
         if (process.env.NODE_ENV === 'test' || req.headers['x-test-mode'] === 'true') {
