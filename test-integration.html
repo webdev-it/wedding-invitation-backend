@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест интеграции - Wedding API</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f6f0, #ede7d9);
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 25px 0;
+            padding: 20px;
+            border-radius: 10px;
+            background: #f9f7f4;
+        }
+        .success { border-left: 5px solid #28a745; }
+        .error { border-left: 5px solid #dc3545; }
+        .info { border-left: 5px solid #17a2b8; }
+        button {
+            background: linear-gradient(135deg, #8B4513, #654321);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-weight: bold;
+        }
+        button:hover { transform: translateY(-2px); }
+        .result {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 8px;
+            background: #fff;
+            border: 1px solid #ddd;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Тестирование Wedding API</h1>
+        <p><strong>GitHub Pages:</strong> https://webdev-it.github.io/felixme/wedding/</p>
+        - **Backend API**: [https://wedding-invitation-backend-lj0d.onrender.com](https://wedding-invitation-backend-lj0d.onrender.com)
+
+        <div class="test-section info">
+            <h3>1️⃣ Health Check API</h3>
+            <p>Проверяем работоспособность backend сервера</p>
+            <button onclick="testHealthCheck()">Проверить Health Check</button>
+            <div id="health-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section info">
+            <h3>2️⃣ CORS тест</h3>
+            <p>Проверяем что API принимает запросы с вашего домена</p>
+            <button onclick="testCORS()">Тест CORS</button>
+            <div id="cors-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section info">
+            <h3>3️⃣ Отправка тестовой формы</h3>
+            <p>Проверяем полную интеграцию API</p>
+            <input type="text" id="testName" placeholder="Ваше имя для теста" value="Тестовый гость">
+            <select id="testAttendance">
+                <option value="Буду присутствовать">Буду присутствовать</option>
+                <option value="Не смогу присутствовать">Не смогу присутствовать</option>
+            </select>
+            <br><br>
+            <button onclick="testFormSubmission()">Отправить тестовую форму</button>
+            <div id="form-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section info">
+            <h3>4️⃣ Инструкции по развертыванию</h3>
+            <ol>
+                <li><strong>Backend:</strong> Создайте репозиторий на GitHub и разверните на Render.com</li>
+                <li><strong>Frontend:</strong> Загрузите файлы из папки frontend/ в /felixme/wedding/</li>
+                <li><strong>Gmail:</strong> Создайте App Password и добавьте в Environment Variables</li>
+                <li><strong>Тест:</strong> Откройте https://webdev-it.github.io/felixme/wedding/ и протестируйте форму</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000' 
+            : 'https://wedding-invitation-backend-lj0d.onrender.com';
+
+        async function testHealthCheck() {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = '⏳ Проверяем health check...';
+            
+            try {
+                const response = await fetch(`${API_URL}/api/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ SUCCESS!\n\nОтвет: ${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ ERROR: ${response.status}\n\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ FETCH ERROR:\n\n${error.message}\n\nВозможные причины:\n- Backend не запущен\n- CORS проблема\n- Неправильный URL`;
+            }
+        }
+
+        async function testCORS() {
+            const resultDiv = document.getElementById('cors-result');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = '⏳ Тестируем CORS настройки...';
+            
+            try {
+                const response = await fetch(`${API_URL}/`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ CORS работает корректно!\n\nОткрытые заголовки:\n${Array.from(response.headers.entries()).map(([k,v]) => `${k}: ${v}`).join('\n')}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ CORS ERROR: ${response.status}`;
+                }
+            } catch (error) {
+                if (error.message.includes('CORS')) {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ CORS БЛОКИРОВКА!\n\nОшибка: ${error.message}\n\nРешение:\n1. Добавьте ваш домен в CORS origins на backend\n2. Проверьте что backend запущен`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ NETWORK ERROR: ${error.message}`;
+                }
+            }
+        }
+
+        async function testFormSubmission() {
+            const resultDiv = document.getElementById('form-result');
+            const name = document.getElementById('testName').value;
+            const attendance = document.getElementById('testAttendance').value;
+            
+            if (!name.trim()) {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ Введите имя для тестирования';
+                return;
+            }
+            
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = '⏳ Отправляем тестовую форму...';
+            
+            try {
+                const response = await fetch(`${API_URL}/api/submit-form`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        attendance: attendance,
+                        wishes: 'Это тестовое сообщение от системы проверки интеграции'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `🎉 ФОРМА ОТПРАВЛЕНА УСПЕШНО!\n\nОтвет сервера:\n${JSON.stringify(data, null, 2)}\n\n✅ Проверьте email: abdumalikabdumalikov72@gmail.com`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ ФОРМА НЕ ОТПРАВЛЕНА:\n\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ ОШИБКА ОТПРАВКИ:\n\n${error.message}`;
+            }
+        }
+
+        // Автоматический тест при загрузке
+        window.addEventListener('load', () => {
+            console.log('🧪 Тест страница загружена');
+            console.log('🔗 API URL:', API_URL);
+            
+            // Небольшая задержка для автотеста
+            setTimeout(() => {
+                console.log('🚀 Запуск автоматического health check...');
+                testHealthCheck();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

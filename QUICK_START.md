@@ -40,7 +40,7 @@
 ## ✅ Результат
 
 - **Свадебное приглашение**: https://webdev-it.github.io/felixme/wedding/
-- **Backend API**: https://wedding-invitation-backend.onrender.com
+- **Backend API**: https://wedding-invitation-backend-lj0d.onrender.com
 - **Полностью бесплатно**: $0/месяц
 
 ## 📧 Что происходит

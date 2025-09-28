@@ -48,8 +48,8 @@ git push -u origin main
 
 4. **Нажмите "Create Web Service"**
 
-✅ **Ваш Backend API будет доступен:**
-`https://wedding-invitation-backend.onrender.com`
+✅ **Ваш Backend API доступен:**
+`https://wedding-invitation-backend-lj0d.onrender.com`
 
 ---
 
@@ -104,9 +104,9 @@ git push -u origin main
 
 ```
 ✅ Свадебное приглашение: https://webdev-it.github.io/felixme/wedding/
-✅ Backend API:           https://wedding-invitation-backend.onrender.com
-✅ Отправка формы:        https://wedding-invitation-backend.onrender.com/api/submit-form
-✅ Health Check:          https://wedding-invitation-backend.onrender.com/api/health
+✅ Backend API:           https://wedding-invitation-backend-lj0d.onrender.com
+✅ Отправка формы:        https://wedding-invitation-backend-lj0d.onrender.com/api/submit-form
+✅ Health Check:          https://wedding-invitation-backend-lj0d.onrender.com/api/health
 ```
 
 ---
