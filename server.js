@@ -23,14 +23,17 @@ app.use(helmet({
     }
 }));
 
-// CORS настройки для работы с GitHub Pages
+// CORS настройки для работы с GitHub Pages и felixme.online
 const corsOptions = {
     origin: [
         'http://localhost:3000',
         'http://localhost:8000',
-        'https://webdev-it.github.io', // Ваш GitHub Pages домен
-        'https://webdev-it.github.io/felixme/wedding', // Полный путь к свадебному приглашению
-        'https://wedding-invitation-backend.onrender.com' // Backend URL для самотестирования
+        'https://webdev-it.github.io', // GitHub Pages основной домен
+        'https://webdev-it.github.io/felixme/wedding', // Полный путь к приглашению на GitHub Pages
+        'https://felixme.online', // Основной домен
+        'https://www.felixme.online', // С www префиксом
+        'https://felixme.online/wedding', // Путь к wedding на основном домене
+        'https://wedding-invitation-backend-lj0d.onrender.com' // Backend URL для самотестирования
     ],
     credentials: true,
     optionsSuccessStatus: 200
@@ -62,7 +65,7 @@ const createTransporter = () => {
         service: 'gmail',
         auth: {
             user: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com',
-            pass: process.env.EMAIL_PASS || 'your-app-password' // App Password!
+            pass: process.env.EMAIL_PASS || 'zjzj yocn hyzc ukdl' // App Password!
         },
         tls: {
             rejectUnauthorized: false

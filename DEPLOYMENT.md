@@ -2,7 +2,8 @@
 
 ## 📋 Ваша конфигурация
 
-- **Frontend**: `https://webdev-it.github.io/felixme/wedding/` ✅ (готов)
+- **Frontend**: `https://felixme.online/wedding/` ✅ (готов) 
+- **GitHub Pages**: `https://webdev-it.github.io/felixme/wedding/` ✅ (резерв)
 - **Backend**: Развернем на Render.com (бесплатно)
 
 ---
@@ -103,7 +104,8 @@ git push -u origin main
 ## 🎯 Финальные URL адреса
 
 ```
-✅ Свадебное приглашение: https://webdev-it.github.io/felixme/wedding/
+✅ Свадебное приглашение: https://felixme.online/wedding/
+✅ GitHub Pages (резерв):    https://webdev-it.github.io/felixme/wedding/
 ✅ Backend API:           https://wedding-invitation-backend-lj0d.onrender.com
 ✅ Отправка формы:        https://wedding-invitation-backend-lj0d.onrender.com/api/submit-form
 ✅ Health Check:          https://wedding-invitation-backend-lj0d.onrender.com/api/health
