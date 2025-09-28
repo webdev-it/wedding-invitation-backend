@@ -45,14 +45,19 @@ app.use(cors(corsOptions));
 // Функция создания email транспортера  
 const createTransporter = () => {
     return nodemailer.createTransport({
-        service: 'Gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // true для port 465, false для других портов
         auth: {
             user: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com',
             pass: process.env.EMAIL_PASS || 'zjzj yocn hyzc ukdl'
         },
         tls: {
             rejectUnauthorized: false
-        }
+        },
+        connectionTimeout: 30000, // 30 секунд на подключение
+        greetingTimeout: 20000, // 20 секунд на greeting
+        socketTimeout: 60000 // 60 секунд на socket
     });
 };
 
@@ -172,11 +177,11 @@ app.post('/api/submit-form', validateForm, async (req, res) => {
                     `.trim()
                 };
 
-                // Отправка с таймаутом 10 секунд
+                // Отправка с увеличенным таймаутом 30 секунд
                 await Promise.race([
                     transporter.sendMail(mailOptions),
                     new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Email timeout')), 10000)
+                        setTimeout(() => reject(new Error('Email timeout')), 30000)
                     )
                 ]);
 
@@ -196,8 +201,26 @@ app.post('/api/submit-form', validateForm, async (req, res) => {
                 });
                 
             } catch (emailError) {
-                // Fallback: сохраняем в логах если email не работает
-                console.log(`⚠️ Email не отправлен (${emailError.message}), сохраняем в логах:`);
+                // Подробная диагностика ошибки email
+                console.log(`⚠️ Email не отправлен. Диагностика:`);
+                console.log(`   Тип ошибки: ${emailError.name}`);
+                console.log(`   Сообщение: ${emailError.message}`);
+                console.log(`   Код: ${emailError.code || 'N/A'}`);
+                console.log(`   Команда: ${emailError.command || 'N/A'}`);
+                
+                // Специальные сообщения для разных типов ошибок
+                if (emailError.message.includes('timeout')) {
+                    console.log(`   🚨 ПРОБЛЕМА: Gmail не отвечает (timeout)`);
+                    console.log(`   💡 РЕШЕНИЕ: Проверьте интернет или попробуйте позже`);
+                } else if (emailError.message.includes('authentication') || emailError.message.includes('Invalid login')) {
+                    console.log(`   🚨 ПРОБЛЕМА: Неправильный логин или пароль`);
+                    console.log(`   💡 РЕШЕНИЕ: Проверьте пароль приложения Gmail`);
+                } else if (emailError.message.includes('ENOTFOUND')) {
+                    console.log(`   🚨 ПРОБЛЕМА: Не удается найти сервер Gmail`);
+                    console.log(`   💡 РЕШЕНИЕ: Проблема с DNS или интернетом`);
+                }
+                
+                console.log(`   📋 Сохраняем заявку в логах:`);
                 console.log('=' .repeat(50));
                 console.log(`📝 НОВАЯ ЗАЯВКА НА СВАДЬБУ`);
                 console.log(`👤 Имя: ${name}`);
