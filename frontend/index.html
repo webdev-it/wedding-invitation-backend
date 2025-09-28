@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анкета для свадьбы</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💒</text></svg>">
+</head>
+<body>
+    <!-- Фоновая музыка для свадебного приглашения -->
+    <audio id="backgroundMusic" autoplay loop preload="auto" style="display: none;">
+        <source src="bg_music/bg_music.mp3" type="audio/mpeg">
+        Ваш браузер не поддерживает воспроизведение аудио.
+    </audio>
+    
+    <!-- Кнопка управления музыкой -->
+    <div id="musicControl" class="music-control">
+        <button id="musicToggle" onclick="toggleMusic()" title="Включить/выключить музыку">
+            🎵
+        </button>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="monogram">И & С</div>
+            <h1>Свадебная анкета</h1>
+            <p class="subtitle">Приглашаем Вас на торжество, посвящённое нашей свадьбе!</p>
+        </div>
+
+        <div class="wedding-intro">
+            <div class="couple-names">
+                <span>Икромхуджа</span>
+                <span class="ampersand">&</span>
+                <span>Сарвиноз</span>
+            </div>
+            <p style="font-style: italic; margin: 20px 0; font-size: 1.1rem;">
+                С уважением, семья Максудовых и Дусматовых
+            </p>
+            
+            <div class="decorative-border"></div>
+            
+            <div class="wedding-details">
+                <h3>Детали торжества</h3>
+                <div class="event-details">
+                    <div class="detail-item">
+                        <strong>Свадьба в</strong>
+                        18:00
+                    </div>
+                    <div class="detail-item">
+                        <strong>6 октября</strong>
+                        2025
+                    </div>
+                    <div class="detail-item">
+                        <strong>Ресторан</strong>
+                        «Базморо»
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <form id="weddingForm" onsubmit="submitForm(event)">
+                <!-- Основная информация -->
+                <div class="form-section">
+                    <h3>Основная информация</h3>
+                    
+                    <div class="form-group">
+                        <label for="name">Ваше полное имя *</label>
+                        <input type="text" id="name" name="name" required maxlength="100" placeholder="Например: Иван Петров или John Smith">
+                        <div class="error-message"></div>
+                    </div>
+                </div>
+
+                <!-- Присутствие -->
+                <div class="form-section">
+                    <h3>Присутствие</h3>
+                    
+                    <div class="form-group">
+                        <label>Вы планируете присутствовать на свадьбе? *</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="yes" name="attendance" value="Буду присутствовать" required>
+                                <label for="yes">✅ Да, буду</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="no" name="attendance" value="Не смогу присутствовать">
+                                <label for="no">❌ К сожалению, нет</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="maybe" name="attendance" value="Пока не знаю">
+                                <label for="maybe">❓ Пока не уверен(а)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="guests">Количество гостей (включая вас)</label>
+                        <select id="guests" name="guests">
+                            <option value="1">1 человек</option>
+                            <option value="2">2 человека</option>
+                            <option value="3">3 человека</option>
+                            <option value="4">4 человека</option>
+                            <option value="5">5+ человек</option>
+                        </select>
+                    </div>
+                </div>
+
+
+
+                <!-- Пожелания -->
+                <div class="form-section">
+                    <h3>Пожелания и комментарии</h3>
+                    
+                    <div class="form-group">
+                        <label for="music">Музыкальные предпочтения</label>
+                        <textarea id="music" name="music" rows="2" placeholder="Какая музыка вам нравится? Есть ли особые пожелания?" maxlength="500"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="wishes">Пожелания молодоженам</label>
+                        <textarea id="wishes" name="wishes" rows="3" placeholder="Ваши теплые слова и пожелания для молодой пары" maxlength="1000"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="comments">Дополнительные комментарии</label>
+                        <textarea id="comments" name="comments" rows="3" placeholder="Любые другие комментарии или особые просьбы" maxlength="500"></textarea>
+                    </div>
+                </div>
+
+                <div class="submit-section">
+                    <button type="submit" id="submitBtn" class="submit-btn">
+                        Отправить анкету
+                    </button>
+                    <p style="margin-top: 15px; opacity: 0.7; font-size: 0.9rem;">
+                        * Поля, отмеченные звездочкой, обязательны для заполнения
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
