@@ -44,7 +44,7 @@ app.use(cors(corsOptions));
 
 // Функция создания email транспортера  
 const createTransporter = () => {
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
         service: 'Gmail',
         auth: {
             user: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com',
