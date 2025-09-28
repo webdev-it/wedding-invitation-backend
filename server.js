@@ -141,18 +141,42 @@ app.post('/api/submit-form', validateForm, async (req, res) => {
                 }
             });
         } else {
-            // Реальная отправка письма - простая версия
-            const transporter = createTransporter();
-            
-            // Простые параметры письма (только текст)
-            const mailOptions = {
-                from: {
-                    name: 'Свадебное приглашение',
-                    address: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com'
-                },
-                to: process.env.RECIPIENT_EMAIL || 'abdumalikabdumalikov72@gmail.com',
-                subject: `💒 Новая заявка на свадьбу от ${name}`,
-                text: `
+            // Проверяем наличие настроек email
+            if (!process.env.EMAIL_PASS || process.env.EMAIL_PASS === 'your-app-password') {
+                // Режим без email - просто логируем
+                console.log('📧 EMAIL НЕ НАСТРОЕН - сохраняем заявку в логах:');
+                console.log('=' .repeat(50));
+                console.log(`📝 НОВАЯ ЗАЯВКА НА СВАДЬБУ`);
+                console.log(`👤 Имя: ${name}`);
+                console.log(`✅ Статус: ${attendance}`);
+                console.log(`💌 Пожелания: ${wishes || 'Не указаны'}`);
+                console.log(`⏰ Время: ${timestamp.toLocaleString('ru-RU')}`);
+                console.log('=' .repeat(50));
+                
+                // Успешный ответ без email
+                res.json({
+                    success: true,
+                    message: 'Ваша заявка успешно получена и сохранена!',
+                    data: {
+                        name,
+                        attendance,
+                        submitted_at: timestamp.toISOString()
+                    }
+                });
+            } else {
+                // Попытка реальной отправки email с timeout
+                try {
+                    const transporter = createTransporter();
+                    
+                    // Устанавливаем таймаут
+                    const mailOptions = {
+                        from: {
+                            name: 'Свадебное приглашение',
+                            address: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com'
+                        },
+                        to: process.env.RECIPIENT_EMAIL || 'abdumalikabdumalikov72@gmail.com',
+                        subject: `💒 Новая заявка на свадьбу от ${name}`,
+                        text: `
 НОВАЯ ЗАЯВКА НА СВАДЬБУ
 
 👤 Имя гостя: ${name}
@@ -168,26 +192,55 @@ app.post('/api/submit-form', validateForm, async (req, res) => {
 🏛️ Место: Ресторан «Базморо»
 
 Автоматическое уведомление от системы свадебных приглашений
-                `.trim()
-            };
+                        `.trim()
+                    };
 
-            await transporter.sendMail(mailOptions);
+                    // Отправка с таймаутом 10 секунд
+                    await Promise.race([
+                        transporter.sendMail(mailOptions),
+                        new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Email timeout')), 10000)
+                        )
+                    ]);
 
-            // Логирование на сервере
-            console.log(`✅ Заявка отправлена: ${name} - ${attendance}`);
-            console.log(`📧 Email отправлен на: ${mailOptions.to}`);
-            console.log(`⏰ Время: ${timestamp.toLocaleString('ru-RU')}`);
+                    // Логирование успешной отправки
+                    console.log(`✅ Заявка отправлена по email: ${name} - ${attendance}`);
+                    console.log(`📧 Email отправлен на: ${mailOptions.to}`);
 
-            // Успешный ответ
-            res.json({
-                success: true,
-                message: 'Ваша заявка успешно отправлена!',
-                data: {
-                    name,
-                    attendance,
-                    submitted_at: timestamp.toISOString()
+                    // Успешный ответ
+                    res.json({
+                        success: true,
+                        message: 'Ваша заявка успешно отправлена!',
+                        data: {
+                            name,
+                            attendance,
+                            submitted_at: timestamp.toISOString()
+                        }
+                    });
+                    
+                } catch (emailError) {
+                    // Fallback: сохраняем в логах если email не работает
+                    console.log(`⚠️ Email не отправлен (${emailError.message}), сохраняем в логах:`);
+                    console.log('=' .repeat(50));
+                    console.log(`📝 НОВАЯ ЗАЯВКА НА СВАДЬБУ`);
+                    console.log(`👤 Имя: ${name}`);
+                    console.log(`✅ Статус: ${attendance}`);
+                    console.log(`💌 Пожелания: ${wishes || 'Не указаны'}`);
+                    console.log(`⏰ Время: ${timestamp.toLocaleString('ru-RU')}`);
+                    console.log('=' .repeat(50));
+                    
+                    // Успешный ответ даже если email не отправлен
+                    res.json({
+                        success: true,
+                        message: 'Ваша заявка успешно получена и сохранена!',
+                        data: {
+                            name,
+                            attendance,
+                            submitted_at: timestamp.toISOString()
+                        }
+                    });
                 }
-            });
+            }
         }
 
     } catch (error) {
