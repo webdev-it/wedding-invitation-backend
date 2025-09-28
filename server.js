@@ -1,71 +1,54 @@
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
+const { body, validationResult } = require('express-validator');
 const nodemailer = require('nodemailer');
 const rateLimit = require('express-rate-limit');
-const { body, validationResult } = require('express-validator');
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Настройка безопасности
-app.use(helmet({
-    crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "data:", "https:"],
-            scriptSrc: ["'self'", "'unsafe-inline'"]
-        }
-    }
-}));
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 минут
+    max: 50, // максимум 50 запросов с одного IP за 15 минут
+    message: 'Слишком много запросов с этого IP, попробуйте позже.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
-// CORS настройки для работы с GitHub Pages и felixme.online
-const corsOptions = {
-    origin: [
-        'http://localhost:3000',
-        'http://localhost:8000',
-        'https://webdev-it.github.io', // GitHub Pages основной домен
-        'https://webdev-it.github.io/felixme/wedding', // Полный путь к приглашению на GitHub Pages
-        'https://felixme.online', // Основной домен
-        'https://www.felixme.online', // С www префиксом
-        'https://felixme.online/wedding', // Путь к wedding на основном домене
-        'https://wedding-invitation-backend-lj0d.onrender.com' // Backend URL для самотестирования
-    ],
-    credentials: true,
-    optionsSuccessStatus: 200
-};
-
-app.use(cors(corsOptions));
+app.use(limiter);
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 минут
-    max: 10, // максимум 10 запросов с одного IP
-    message: {
-        error: 'Слишком много запросов, попробуйте позже'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
+// CORS настройки для продакшн
+const corsOptions = {
+    origin: [
+        'https://felixme.online',
+        'https://www.felixme.online',
+        'http://felixme.online',
+        'http://www.felixme.online',
+        'https://webdev-it.github.io',
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-test-mode']
+};
 
-// Применяем rate limiting только к POST запросам
-app.use('/api/submit-form', limiter);
+app.use(cors(corsOptions));
 
-// Конфигурация почты
+// Функция создания email транспортера  
 const createTransporter = () => {
     return nodemailer.createTransporter({
-        service: 'gmail',
+        service: 'Gmail',
         auth: {
             user: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com',
-            pass: process.env.EMAIL_PASS || 'zjzj yocn hyzc ukdl' // App Password!
+            pass: process.env.EMAIL_PASS || 'your-app-password'
         },
         tls: {
             rejectUnauthorized: false
@@ -98,13 +81,13 @@ app.get('/', (req, res) => {
     res.json({
         message: '💒 Wedding Invitation Backend',
         status: 'active',
-        version: '1.0.0',
+        version: '1.1.0-simplified',
         endpoints: {
             submit: 'POST /api/submit-form',
             health: 'GET /api/health'
         },
         wedding: {
-            couple: 'Икромхуджа & Сарвиноз',
+            couple: 'Икромхудзя & Сарвиноз',
             date: '6 октября 2025',
             time: '18:00',
             venue: 'Ресторан «Базморо»'
@@ -124,7 +107,6 @@ app.get('/api/health', (req, res) => {
 // Основной endpoint для отправки формы
 app.post('/api/submit-form', validateForm, async (req, res) => {
     try {
-        // Логируем входящие данные для отладки
         console.log('📝 Получены данные формы:', req.body);
         
         // Проверка валидации
@@ -143,167 +125,6 @@ app.post('/api/submit-form', validateForm, async (req, res) => {
         
         console.log(`✅ Валидация пройдена для: ${name} - ${attendance}`);
 
-        // Создаем HTML письмо
-        const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <style>
-                body { 
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-                    line-height: 1.6; 
-                    color: #2c2c2c; 
-                    background: #f8f6f0;
-                    margin: 0;
-                    padding: 20px;
-                }
-                .container { 
-                    max-width: 600px; 
-                    margin: 0 auto; 
-                    background: white;
-                    border-radius: 15px;
-                    overflow: hidden;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-                }
-                .header { 
-                    text-align: center; 
-                    padding: 30px 20px; 
-                    background: linear-gradient(135deg, #8B4513, #654321); 
-                    color: white;
-                }
-                .monogram { 
-                    font-size: 3.5rem; 
-                    margin-bottom: 10px; 
-                    font-weight: bold;
-                }
-                .content {
-                    padding: 30px;
-                }
-                .form-data { 
-                    background: #f9f7f4; 
-                    padding: 25px; 
-                    border-radius: 10px; 
-                    margin: 20px 0; 
-                    border-left: 5px solid #8B4513; 
-                }
-                .field { 
-                    margin: 20px 0; 
-                    padding-bottom: 15px;
-                    border-bottom: 1px solid #eee;
-                }
-                .field:last-child {
-                    border-bottom: none;
-                }
-                .label { 
-                    font-weight: bold; 
-                    color: #654321; 
-                    font-size: 1.1rem;
-                    margin-bottom: 8px;
-                }
-                .value { 
-                    background: white; 
-                    padding: 15px; 
-                    border-radius: 8px; 
-                    border: 1px solid #ddd;
-                    font-size: 1rem;
-                }
-                .footer { 
-                    text-align: center; 
-                    padding: 25px; 
-                    background: #f9f7f4; 
-                    color: #654321;
-                    border-top: 2px solid #8B4513;
-                }
-                .wedding-details {
-                    margin: 15px 0;
-                    font-size: 1.1rem;
-                }
-                .highlight {
-                    color: #8B4513;
-                    font-weight: bold;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <div class="monogram">И & С</div>
-                    <h2>Новая заявка на свадьбу</h2>
-                    <p><strong>Получено:</strong> ${timestamp.toLocaleString('ru-RU')}</p>
-                </div>
-                
-                <div class="content">
-                    <h3 style="color: #654321; text-align: center; margin-bottom: 25px;">Данные гостя</h3>
-                    
-                    <div class="form-data">
-                        <div class="field">
-                            <div class="label">👤 Имя гостя:</div>
-                            <div class="value">${name}</div>
-                        </div>
-                        
-                        <div class="field">
-                            <div class="label">✅ Статус присутствия:</div>
-                            <div class="value ${attendance === 'Буду присутствовать' ? 'highlight' : ''}">${attendance}</div>
-                        </div>
-                        
-                        <div class="field">
-                            <div class="label">💌 Пожелания молодоженам:</div>
-                            <div class="value">${wishes || 'Пожелания не указаны'}</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="footer">
-                    <div class="wedding-details">
-                        <p><strong>💒 Свадьба:</strong> <span class="highlight">Икромхуджа & Сарвиноз</span></p>
-                        <p><strong>📅 Дата:</strong> <span class="highlight">6 октября 2025</span></p>
-                        <p><strong>🕕 Время:</strong> <span class="highlight">18:00</span></p>
-                        <p><strong>🏛️ Место:</strong> <span class="highlight">Ресторан «Базморо»</span></p>
-                    </div>
-                    <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
-                    <p style="margin: 0; font-style: italic;">
-                        Автоматическое уведомление от системы свадебных приглашений
-                    </p>
-                </div>
-            </div>
-        </body>
-        </html>
-        `;
-
-        // Настройка почты (только если не в тестовом режиме)
-        let transporter = null;
-        let mailOptions = null;
-        
-        if (process.env.NODE_ENV !== 'test' && req.headers['x-test-mode'] !== 'true') {
-            transporter = createTransporter();
-            
-            // Параметры письма
-            mailOptions = {
-                from: {
-                    name: 'Свадебное приглашение',
-                    address: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com'
-                },
-                to: process.env.RECIPIENT_EMAIL || 'abdumalikabdumalikov72@gmail.com',
-                subject: `💒 Новая заявка на свадьбу от ${name}`,
-                html: htmlContent,
-                text: `
-Новая заявка на свадьбу
-
-Имя: ${name}
-Присутствие: ${attendance}
-Пожелания: ${wishes || 'Не указаны'}
-
-Дата отправки: ${timestamp.toLocaleString('ru-RU')}
-
----
-Свадьба Икромхуджи и Сарвиноз
-6 октября 2025 в 18:00
-Ресторан «Базморо»
-                `.trim()
-            };
-        }
-
         // Отправка письма (только если не в тестовом режиме)
         if (process.env.NODE_ENV === 'test' || req.headers['x-test-mode'] === 'true') {
             console.log('🧪 ТЕСТОВЫЙ РЕЖИМ: Письмо не отправляется');
@@ -320,7 +141,36 @@ app.post('/api/submit-form', validateForm, async (req, res) => {
                 }
             });
         } else {
-            // Реальная отправка письма
+            // Реальная отправка письма - простая версия
+            const transporter = createTransporter();
+            
+            // Простые параметры письма (только текст)
+            const mailOptions = {
+                from: {
+                    name: 'Свадебное приглашение',
+                    address: process.env.EMAIL_USER || 'minecraftpedit66@gmail.com'
+                },
+                to: process.env.RECIPIENT_EMAIL || 'abdumalikabdumalikov72@gmail.com',
+                subject: `💒 Новая заявка на свадьбу от ${name}`,
+                text: `
+НОВАЯ ЗАЯВКА НА СВАДЬБУ
+
+👤 Имя гостя: ${name}
+✅ Статус присутствия: ${attendance}
+💌 Пожелания молодоженам: ${wishes || 'Пожелания не указаны'}
+
+📅 Дата отправки: ${timestamp.toLocaleString('ru-RU')}
+
+---
+💒 Свадьба: Икромхуджа & Сарвиноз
+📅 Дата: 6 октября 2025
+🕕 Время: 18:00
+🏛️ Место: Ресторан «Базморо»
+
+Автоматическое уведомление от системы свадебных приглашений
+                `.trim()
+            };
+
             await transporter.sendMail(mailOptions);
 
             // Логирование на сервере
@@ -341,7 +191,7 @@ app.post('/api/submit-form', validateForm, async (req, res) => {
         }
 
     } catch (error) {
-        console.error('❌ Ошибка отправки письма:', error);
+        console.error('❌ Ошибка в /api/submit-form:', error);
         
         res.status(500).json({
             success: false,
@@ -351,21 +201,22 @@ app.post('/api/submit-form', validateForm, async (req, res) => {
     }
 });
 
-// Обработка 404 ошибок
+// 404 обработчик
 app.use('*', (req, res) => {
     res.status(404).json({
         success: false,
         message: 'Endpoint не найден',
-        available_endpoints: {
-            submit: 'POST /api/submit-form',
-            health: 'GET /api/health'
-        }
+        availableEndpoints: [
+            'GET /',
+            'GET /api/health', 
+            'POST /api/submit-form'
+        ]
     });
 });
 
-// Глобальная обработка ошибок
+// Обработчик ошибок
 app.use((error, req, res, next) => {
-    console.error('💥 Глобальная ошибка:', error);
+    console.error('Необработанная ошибка сервера:', error);
     res.status(500).json({
         success: false,
         message: 'Внутренняя ошибка сервера'
@@ -374,14 +225,25 @@ app.use((error, req, res, next) => {
 
 // Запуск сервера
 app.listen(PORT, () => {
-    console.log('\n' + '='.repeat(60));
-    console.log('🚀 Wedding Invitation Backend запущен!');
-    console.log(`📡 Сервер работает на порту: ${PORT}`);
-    console.log(`🌐 URL: http://localhost:${PORT}`);
-    console.log(`📧 Email отправляется на: ${process.env.RECIPIENT_EMAIL || 'abdumalikabdumalikov72@gmail.com'}`);
-    console.log(`💒 Свадьба: Икромхуджа & Сарвиноз`);
-    console.log(`📅 Дата: 6 октября 2025 в 18:00`);
-    console.log('='.repeat(60) + '\n');
+    console.log(`
+============================================================
+🚀 Wedding Invitation Backend (Simplified) запущен!
+📡 Сервер работает на порту: ${PORT}
+🌐 URL: ${PORT === 3000 ? 'https://wedding-invitation-backend-lj0d.onrender.com' : `http://localhost:${PORT}`}
+📧 Email отправляется на: ${process.env.RECIPIENT_EMAIL || 'abdumalikabdumalikov72@gmail.com'}
+💒 Свадьба: Икромхуджа & Сарвиноз
+📅 Дата: 6 октября 2025 в 18:00
+============================================================
+    `);
 });
 
-module.exports = app;
+// Graceful shutdown
+process.on('SIGINT', () => {
+    console.log('\n🔄 Получен сигнал SIGINT. Завершение работы сервера...');
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    console.log('\n🔄 Получен сигнал SIGTERM. Завершение работы сервера...');
+    process.exit(0);
+});
