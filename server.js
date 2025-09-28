@@ -299,24 +299,41 @@ app.post('/api/submit-form', validateForm, async (req, res) => {
             `.trim()
         };
 
-        // Отправка письма
-        await transporter.sendMail(mailOptions);
+        // Отправка письма (только если не в тестовом режиме)
+        if (process.env.NODE_ENV === 'test' || req.headers['x-test-mode'] === 'true') {
+            console.log('🧪 ТЕСТОВЫЙ РЕЖИМ: Письмо не отправляется');
+            console.log(`📋 Данные для отправки: ${name} - ${attendance}`);
+            
+            // Успешный ответ в тестовом режиме
+            res.json({
+                success: true,
+                message: 'Ваша заявка успешно получена! (тестовый режим)',
+                data: {
+                    name,
+                    attendance,
+                    submitted_at: timestamp.toISOString()
+                }
+            });
+        } else {
+            // Реальная отправка письма
+            await transporter.sendMail(mailOptions);
 
-        // Логирование на сервере
-        console.log(`✅ Заявка отправлена: ${name} - ${attendance}`);
-        console.log(`📧 Email отправлен на: ${mailOptions.to}`);
-        console.log(`⏰ Время: ${timestamp.toLocaleString('ru-RU')}`);
+            // Логирование на сервере
+            console.log(`✅ Заявка отправлена: ${name} - ${attendance}`);
+            console.log(`📧 Email отправлен на: ${mailOptions.to}`);
+            console.log(`⏰ Время: ${timestamp.toLocaleString('ru-RU')}`);
 
-        // Успешный ответ
-        res.json({
-            success: true,
-            message: 'Ваша заявка успешно отправлена!',
-            data: {
-                name,
-                attendance,
-                submitted_at: timestamp.toISOString()
-            }
-        });
+            // Успешный ответ
+            res.json({
+                success: true,
+                message: 'Ваша заявка успешно отправлена!',
+                data: {
+                    name,
+                    attendance,
+                    submitted_at: timestamp.toISOString()
+                }
+            });
+        }
 
     } catch (error) {
         console.error('❌ Ошибка отправки письма:', error);
